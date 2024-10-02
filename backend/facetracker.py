@@ -8,6 +8,8 @@ from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 import requests
 import urllib.request
+import sys
+import platform
 
 print("Current working directory:", os.getcwd())
 
@@ -45,7 +47,6 @@ def draw_landmarks_on_image(image, face_detection_result, hand_detection_result)
     if hand_detection_result.hand_landmarks:
         for hand_landmarks in hand_detection_result.hand_landmarks:
             hand_landmarks_proto = landmark_pb2.NormalizedLandmarkList()
-            # () => 
             hand_landmarks_proto.landmark.extend([
                 landmark_pb2.NormalizedLandmark(x=landmark.x, y=landmark.y, z=landmark.z) for landmark in hand_landmarks
             ])
@@ -99,31 +100,56 @@ hand_detector = vision.HandLandmarker.create_from_options(hand_options)
 # initialize webcam
 cap = cv2.VideoCapture(0)
 
+# Check if the camera opened successfully
+if not cap.isOpened():
+    print("Error: Could not open camera. Please check your camera permissions.")
+    if platform.system() == "Darwin":  # macOS
+        print("On macOS, go to System Preferences > Security & Privacy > Privacy > Camera")
+        print("Ensure that your terminal or IDE has permission to access the camera.")
+    elif platform.system() == "Windows":
+        print("On Windows, go to Settings > Privacy > Camera")
+        print("Ensure that 'Allow apps to access your camera' is turned on.")
+    elif platform.system() == "Linux":
+        print("On Linux, ensure that your user has the necessary permissions to access the camera.")
+    sys.exit(1)
+
+# Add this before the main loop
+cv2.namedWindow('Face Mesh and Hands', cv2.WINDOW_NORMAL)
+
 while True:
-    ret, frame = cap.read()
-    if not ret:
-        break
+    try:
+        ret, frame = cap.read()
+        if not ret:
+            print("Error: Failed to capture frame. Check if another application is using the camera.")
+            break
 
-    # convert to rgb
-    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
+        # convert to rgb
+        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
 
-    # detect face and hand landmarks
-    face_detection_result = face_detector.detect(mp_image)
-    hand_detection_result = hand_detector.detect(mp_image)
+        # detect face and hand landmarks
+        face_detection_result = face_detector.detect(mp_image)
+        hand_detection_result = hand_detector.detect(mp_image)
 
-    # draw landmarks on black image
-    annotated_image = draw_landmarks_on_image(rgb_frame, face_detection_result, hand_detection_result)
-    # resize the image to make it bigger
-    scale_factor = 1.5  # adjust this value to make the window larger or smaller
-    width = int(annotated_image.shape[1] * scale_factor)
-    height = int(annotated_image.shape[0] * scale_factor)
-    resized_image = cv2.resize(annotated_image, (width, height), interpolation=cv2.INTER_LINEAR)
+        # draw landmarks on black image
+        annotated_image = draw_landmarks_on_image(rgb_frame, face_detection_result, hand_detection_result)
+        # resize the image to make it bigger
+        scale_factor = 1.5  # adjust this value to make the window larger or smaller
+        width = int(annotated_image.shape[1] * scale_factor)
+        height = int(annotated_image.shape[0] * scale_factor)
+        resized_image = cv2.resize(annotated_image, (width, height), interpolation=cv2.INTER_LINEAR)
 
-    # show only the face mesh and hand landmarks
-    cv2.imshow('Face Mesh and Hands', resized_image)
+        # show only the face mesh and hand landmarks
+        cv2.imshow('Face Mesh and Hands', resized_image)
 
-    if cv2.waitKey(1) & 0xFF == ord('q'):
+        # Check if window was closed
+        if cv2.getWindowProperty('Face Mesh and Hands', cv2.WND_PROP_VISIBLE) < 1:
+            break
+
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
         break
 
 cap.release()

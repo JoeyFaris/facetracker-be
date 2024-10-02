@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Tracker</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>Face Tracker</h1>
+    <button id="startButton">Start Camera</button>
+    <button id="stopButton">Stop Camera</button>
+    <p id="message"></p>
+
+    <script>
+        $(document).ready(function() {
+            $('#startButton').click(function() {
+                $.post('/run_script', function(data) {
+                    $('#message').text(data.message);
+                    if (data.status === 'success') {
+                        $('#startButton').hide();
+                        $('#stopButton').show();
+                    }
+                });
+            });
+
+            $('#stopButton').click(function() {
+                $.post('/stop_script', function(data) {
+                    $('#message').text(data.message);
+                    if (data.status === 'success') {
+                        $('#stopButton').hide();
+                        $('#startButton').show();
+                    }
+                });
+            });
+
+            // Add this new event listener
+            $(window).on('beforeunload', function() {
+                $.ajax({
+                    url: '/stop_script',
+                    type: 'POST',
+                    async: false
+                });
+            });
+        });
+    </script>
+</body>
+</html>
