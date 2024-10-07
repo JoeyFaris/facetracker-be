@@ -16,7 +16,6 @@ print("Current working directory:", os.getcwd())
 def draw_landmarks_on_image(image, face_detection_result, hand_detection_result):
     black_image = np.zeros(image.shape, dtype=np.uint8)
 
-    # draw face landmarks
     if face_detection_result.face_landmarks:
         for face_landmarks in face_detection_result.face_landmarks:
             face_landmarks_proto = landmark_pb2.NormalizedLandmarkList()
@@ -43,7 +42,6 @@ def draw_landmarks_on_image(image, face_detection_result, hand_detection_result)
                 landmark_drawing_spec=None,
                 connection_drawing_spec=mp.solutions.drawing_styles.get_default_face_mesh_iris_connections_style())
 
-    # draw hand landmarks
     if hand_detection_result.hand_landmarks:
         for hand_landmarks in hand_detection_result.hand_landmarks:
             hand_landmarks_proto = landmark_pb2.NormalizedLandmarkList()
@@ -59,7 +57,6 @@ def draw_landmarks_on_image(image, face_detection_result, hand_detection_result)
 
     return black_image
 
-# Function to download the face landmarker model
 def download_face_landmarker_model(model_path):
     url = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task"
     if not os.path.exists(model_path):
@@ -72,7 +69,6 @@ def download_face_landmarker_model(model_path):
     else:
         print("Face landmarker model already exists.")
 
-# create facelandmarker and handlandmarker with gpu support
 face_model_path = os.path.join('models', 'face_landmarker.task')
 download_face_landmarker_model(face_model_path)
 
@@ -80,7 +76,6 @@ base_options = python.BaseOptions(model_asset_path=face_model_path)
 face_options = vision.FaceLandmarkerOptions(base_options=base_options)
 face_detector = vision.FaceLandmarker.create_from_options(face_options)
 
-# Download hand landmarker model
 hand_landmarker_model_path = 'models/hand_landmarker.task'
 if not os.path.exists(hand_landmarker_model_path):
     print(f"Downloading hand landmarker model to {hand_landmarker_model_path}...")
@@ -90,20 +85,17 @@ if not os.path.exists(hand_landmarker_model_path):
     )
     print("Download completed.")
 
-# Update hand options
 hand_options = vision.HandLandmarkerOptions(
     base_options=python.BaseOptions(model_asset_path=hand_landmarker_model_path),
     num_hands=2)
 
 hand_detector = vision.HandLandmarker.create_from_options(hand_options)
 
-# initialize webcam
 cap = cv2.VideoCapture(0)
 
-# Check if the camera opened successfully
 if not cap.isOpened():
     print("Error: Could not open camera. Please check your camera permissions.")
-    if platform.system() == "Darwin":  # macOS
+    if platform.system() == "Darwin":
         print("On macOS, go to System Preferences > Security & Privacy > Privacy > Camera")
         print("Ensure that your terminal or IDE has permission to access the camera.")
     elif platform.system() == "Windows":
@@ -113,7 +105,6 @@ if not cap.isOpened():
         print("On Linux, ensure that your user has the necessary permissions to access the camera.")
     sys.exit(1)
 
-# Add this before the main loop
 cv2.namedWindow('Face Mesh and Hands', cv2.WINDOW_NORMAL)
 
 while True:
@@ -123,26 +114,20 @@ while True:
             print("Error: Failed to capture frame. Check if another application is using the camera.")
             break
 
-        # convert to rgb
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
 
-        # detect face and hand landmarks
         face_detection_result = face_detector.detect(mp_image)
         hand_detection_result = hand_detector.detect(mp_image)
 
-        # draw landmarks on black image
         annotated_image = draw_landmarks_on_image(rgb_frame, face_detection_result, hand_detection_result)
-        # resize the image to make it bigger
-        scale_factor = 1.5  # adjust this value to make the window larger or smaller
+        scale_factor = 1.5
         width = int(annotated_image.shape[1] * scale_factor)
         height = int(annotated_image.shape[0] * scale_factor)
         resized_image = cv2.resize(annotated_image, (width, height), interpolation=cv2.INTER_LINEAR)
 
-        # show only the face mesh and hand landmarks
         cv2.imshow('Face Mesh and Hands', resized_image)
 
-        # Check if window was closed
         if cv2.getWindowProperty('Face Mesh and Hands', cv2.WND_PROP_VISIBLE) < 1:
             break
 
