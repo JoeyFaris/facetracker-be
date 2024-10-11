@@ -106,6 +106,28 @@ if not cap.isOpened():
     sys.exit(1)
 
 cv2.namedWindow('Face Mesh and Hands', cv2.WINDOW_NORMAL)
+# Initialize variables for FPS calculation
+frame_count = 0
+start_time = time.time()
+fps = 0
+
+# Function to calculate and display FPS
+def update_fps():
+    global frame_count, start_time, fps
+    frame_count += 1
+    current_time = time.time()
+    elapsed_time = current_time - start_time
+    if elapsed_time > 1:  # Update FPS every second
+        fps = frame_count / elapsed_time
+        frame_count = 0
+        start_time = current_time
+    return fps
+
+# Function to display FPS on the frame
+def display_fps(image, fps):
+    cv2.putText(image, f"FPS: {fps:.2f}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+    return image
+
 
 while True:
     try:
@@ -127,6 +149,7 @@ while True:
         resized_image = cv2.resize(annotated_image, (width, height), interpolation=cv2.INTER_LINEAR)
 
         cv2.imshow('Face Mesh and Hands', resized_image)
+
 
         if cv2.getWindowProperty('Face Mesh and Hands', cv2.WND_PROP_VISIBLE) < 1:
             break
